@@ -1,0 +1,81 @@
+import numpy as np
+import pandas as pd
+
+class OffsetDetect:
+    ''' This class is to find the offset between two signals
+    , correct for that offset and quantitavely calculates 
+    the correlation between the two signals
+
+    The class performs:
+    1- Signal normalization and preconfitioning
+    2- Statistical leveling
+    3- Rolling window dynamic cross correlation
+    '''
+    def __init__(self, signal1, signal2):
+        self.signal1 = signal1
+        self.signal2 = signal2
+      
+    def run(self):
+        signal1_conditioned, signal2_conditioned = self._normalization(
+            self.signal1, self.signal2)
+        signal1_leveled, signal2_leveled = self._statistical_leveling(signal1_conditioned, 
+                                                         signal2_conditioned)
+        return signal1_leveled, signal2_leveled
+    
+    def _statistical_leveling(s1, s2):
+        mean_1 = np.nanmean(s1)
+        mean_2 = np.nanmean(s2)
+        shift = mean_1 - mean_2
+        if mean_1 < mean_2:
+            s1 = s1 - shift
+        elif mean_1 == mean_2:
+            pass
+        else:
+            s2 = s2 + shift
+        return s1, s2
+    
+    def _normalization(self, s1, s2):
+        '''This function prepare the data before 
+        detecting the offset'''
+        s1_norm = (s1 - min(s1))/(max(s1) - min(s1))
+        s2_norm = (s2 - min(s2))/(max(s2) - min(s2))
+        return s1_norm, s2_norm    
+    
+    def crosscorr(self, datax, datay, lag=0, wrap=False):
+        if wrap:
+            shiftedy = datay.shift(lag)
+            shiftedy.iloc[:lag] = datay.iloc[-lag:].values
+            return datax.corr(shiftedy)
+        else: 
+            return datax.corr(datay.shift(lag))
+    
+    def run_rolling_offset_detection(self, signal_1, signal_2, 
+                                 lag_split_cm = 30, increment_cm = 5, 
+                                 window_cm = 300, step_cm = 30):
+        lag_interval = increment_cm * lag_split_cm
+        start_index = 0
+        end_index = start_index + window_cm
+        rolling_cc=[]
+        while end_index < len(signal_1):
+            rcc = [self.crosscorr(signal_1, signal_2, lag, 
+                             wrap=False) for lag in range(
+                -int(lag_interval), int(lag_interval+1))]
+            rolling_cc.append(rcc)
+            start_index = start_index + step_cm
+            end_index = end_index + step_cm
+        rolling_cc = pd.DataFrame(rolling_cc)
+        return rolling_cc
+
+    def run_windowed_offset_detection(self, signal_1, signal_2, 
+                                     lag_split_cm = 30, increment_cm = 5, 
+                                     num_splits = 20, step_cm = 30):
+        lag_interval = increment_cm * lag_split_cm
+        no_splits = 20
+        samples_per_split = signal_1.shape[0]/num_splits
+        windowed_cc=[]
+        for t in range(0, no_splits):
+            wcc = [self.crosscorr(signal_1, signal_2, lag) for lag in range(
+                -int(lag_interval),int(lag_interval+1))]
+            windowed_cc.append(wcc)
+        windowed_cc = pd.DataFrame(windowed_cc)
+        return windowed_cc
