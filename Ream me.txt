@@ -1,0 +1,3 @@
+I am Arthur Sedek. Contact: arthur.sedek@gmail.com
+
+This method is developed to fast detect the presence of either a static or a dynamic lag in signals.
