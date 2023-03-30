@@ -7,36 +7,14 @@ class OffsetDetect:
     the correlation between the two signals
 
     The class performs:
-    1- Signal normalization and preconfitioning
-    2- Statistical leveling
-    3- Rolling window dynamic cross correlation
+    1- Signal normalization and preconditioning
+    2- Rolling window dynamic cross correlation
     '''
     def __init__(self, signal1, signal2):
         self.signal1 = signal1
         self.signal2 = signal2
       
-    def run(self):
-        signal1_conditioned, signal2_conditioned = self._normalization(
-            self.signal1, self.signal2)
-        signal1_leveled, signal2_leveled = self._statistical_leveling(signal1_conditioned, 
-                                                         signal2_conditioned)
-        return signal1_leveled, signal2_leveled
-    
-    def _statistical_leveling(s1, s2):
-        mean_1 = np.nanmean(s1)
-        mean_2 = np.nanmean(s2)
-        shift = mean_1 - mean_2
-        if mean_1 < mean_2:
-            s1 = s1 - shift
-        elif mean_1 == mean_2:
-            pass
-        else:
-            s2 = s2 + shift
-        return s1, s2
-    
     def _normalization(self, s1, s2):
-        '''This function prepare the data before 
-        detecting the offset'''
         s1_norm = (s1 - min(s1))/(max(s1) - min(s1))
         s2_norm = (s2 - min(s2))/(max(s2) - min(s2))
         return s1_norm, s2_norm    
